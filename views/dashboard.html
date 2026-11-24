@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Dashboard — Ob-havo obunachilari</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #111a2e;
+      --surface-2: #17223a;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --text-2: #b6c2d4;
+      --muted: #8a99b0;
+      --series: #7cc4ff;      /* yagona qator rangi */
+      --series-soft: rgba(124, 196, 255, 0.16);
+      --grid: rgba(255, 255, 255, 0.07);
+      --accent: #ffd166;
+      --good: #4ade80;
+      --radius: 20px;
+      font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(ellipse at 80% -10%, #1d2b55 0%, transparent 55%), var(--bg); min-height: 100vh; }
+    a { color: var(--series); }
+    button, input, select { font: inherit; color: inherit; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+    header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    header p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+    .head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 12px;
+      background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; font-weight: 600; font-size: 0.9rem; text-decoration: none; color: var(--text);
+    }
+    .btn:hover { background: #1e2b48; }
+    .btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn.loading svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .live { font-size: 0.8rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+    .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 rgba(74,222,128,.6); animation: pulse 2s infinite; }
+    @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .card h2 { font-size: 0.95rem; font-weight: 600; margin: 0 0 2px; }
+    .card .sub { color: var(--muted); font-size: 0.8rem; margin: 0 0 12px; }
+
+    /* Stat plitkalar */
+    .tiles { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); margin-bottom: 14px; }
+    .tile .label { color: var(--text-2); font-size: 0.82rem; font-weight: 500; }
+    .tile .value { font-size: 2.2rem; font-weight: 300; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 4px; }
+    .tile .note { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+
+    .grid { display: grid; gap: 14px; grid-template-columns: 1fr; margin-bottom: 14px; }
+    .chart { position: relative; }
+    .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .axis text, .bar-label, .bar-value { fill: var(--muted); font-size: 11px; font-family: inherit; }
+    .bar-label { fill: var(--text-2); font-size: 12px; }
+    .bar-value { fill: var(--text-2); font-variant-numeric: tabular-nums; }
+    .gridline { stroke: var(--grid); }
+    .baseline { stroke: rgba(255,255,255,.18); }
+    .hit { fill: transparent; cursor: default; }
+    .bar { fill: var(--series); transition: opacity .15s; }
+    .bars:hover .bar { opacity: .55; }
+    .bars .row:hover .bar { opacity: 1; }
+    .row:hover .bar-label { fill: var(--text); }
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 28px 0; text-align: center; }
+
+    .tooltip {
+      position: absolute; pointer-events: none; z-index: 5; background: #0b1220; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 10px; padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 8px 24px rgba(0,0,0,.4); white-space: nowrap;
+      transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .1s;
+    }
+    .tooltip.show { opacity: 1; }
+    .tooltip .t-title { color: var(--muted); margin-bottom: 2px; }
+    .tooltip .t-val { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .tooltip .t-val i { width: 10px; height: 3px; border-radius: 2px; background: var(--series); }
+
+    /* Jadval */
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .filters input, .filters select {
+      padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); min-width: 0;
+    }
+    .filters input { flex: 1; min-width: 200px; }
+    .filters select option { color: #0f172a; }
+    .count { color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em; background: var(--surface-2); position: sticky; top: 0; white-space: nowrap; }
+    th button { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+    th button:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    td.num, th.num { font-variant-numeric: tabular-nums; }
+    td.muted { color: var(--muted); }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--series-soft); color: #cfe8ff; font-size: 0.75rem; margin: 1px 3px 1px 0; white-space: nowrap; }
+    .note-cell { max-width: 260px; color: var(--text-2); }
+    .new-row { animation: flash 2s ease; }
+    @keyframes flash { from { background: rgba(255, 209, 102, .18); } }
+    .error { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.4); color: #fecaca; padding: 12px 14px; border-radius: 12px; margin-bottom: 14px; }
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 10px; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    @media (min-width: 720px) {
+      .tiles { grid-template-columns: repeat(4, 1fr); }
+      .grid { grid-template-columns: 1fr 1fr; }
+      .grid .wide { grid-column: 1 / -1; }
+    }
+    @media (min-width: 1100px) {
+      .grid { grid-template-columns: 1.4fr 1fr 1fr; }
+      .grid .wide { grid-column: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Obunachilar dashboardi</h1>
+        <p>Ob-havo ogohlantirishlariga yozilganlar · Neon bazasidan jonli</p>
+      </div>
+      <div class="head-actions">
+        <span class="live" id="live"><i aria-hidden="true"></i><span id="updated">Yuklanmoqda…</span></span>
+        <button type="button" class="btn" id="refresh">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Yangilash
+        </button>
+        <button type="button" class="btn" id="export">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>CSV
+        </button>
+        <a class="btn" href="/">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Bosh sahifa
+        </a>
+      </div>
+    </header>
+
+    <div class="error" id="error" role="alert" hidden></div>
+
+    <section class="tiles" aria-label="Asosiy ko'rsatkichlar">
+      <div class="card tile"><div class="label">Jami obunachilar</div><div class="value" id="t-jami">—</div><div class="note">barcha vaqt</div></div>
+      <div class="card tile"><div class="label">Bugun</div><div class="value" id="t-bugun">—</div><div class="note">Toshkent vaqti bilan</div></div>
+      <div class="card tile"><div class="label">Oxirgi 7 kun</div><div class="value" id="t-hafta">—</div><div class="note" id="t-hafta-note">&nbsp;</div></div>
+      <div class="card tile"><div class="label">Eng faol shahar</div><div class="value" id="t-top" style="font-size:1.6rem;font-weight:500">—</div><div class="note" id="t-top-note">&nbsp;</div></div>
+    </section>
+
+    <section class="grid">
+      <div class="card wide">
+        <h2 id="h-daily">Kunlik obunalar</h2>
+        <p class="sub">Oxirgi 14 kun</p>
+        <div class="chart" id="c-daily"><div class="skeleton" style="height:200px"></div></div>
+      </div>
+      <div class="card">
+        <h2 id="h-city">Shaharlar bo'yicha</h2>
+        <p class="sub">Obunachilar soni</p>
+        <div class="chart" id="c-city"><div class="skeleton" style="height:200px"></div></div>
+      </div>
+      <div class="card">
+        <h2 id="h-alert">Ogohlantirish turlari</h2>
+        <p class="sub">Necha kishi tanlagan</p>
+        <div class="chart" id="c-alert"><div class="skeleton" style="height:200px"></div></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-table">
+      <h2 id="h-table">Barcha yozuvlar</h2>
+      <p class="sub">Oxirgi 500 ta obuna</p>
+      <div class="filters">
+        <label class="sr-only" for="q">Qidirish</label>
+        <input id="q" type="search" placeholder="Ism, telefon yoki izoh bo'yicha qidirish…" autocomplete="off" />
+        <label class="sr-only" for="f-city">Shahar</label>
+        <select id="f-city"><option value="">Barcha shaharlar</option></select>
+        <label class="sr-only" for="f-alert">Ogohlantirish</label>
+        <select id="f-alert"><option value="">Barcha ogohlantirishlar</option></select>
+        <span class="count" id="count" aria-live="polite"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="num"><button type="button" data-sort="id">#</button></th>
+              <th><button type="button" data-sort="ism">Ism</button></th>
+              <th>Telefon</th>
+              <th><button type="button" data-sort="shahar">Shahar</button></th>
+              <th>Ogohlantirishlar</th>
+              <th>Izoh</th>
+              <th><button type="button" data-sort="sana" aria-sort="descending">Sana ↓</button></th>
+            </tr>
+          </thead>
+          <tbody id="rows"><tr><td colspan="7"><div class="skeleton" style="height:120px"></div></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <script src="/dashboard.js"></script>
+</body>
+</html>

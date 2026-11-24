@@ -33,6 +33,7 @@ const I18N = {
     fName: 'Ismingiz', fPhone: 'Telefon raqami', fCity: 'Shahar', fAlerts: 'Qaysi ogohlantirishlar kerak?', fNote: 'Izoh (ixtiyoriy)',
     aRain: "Yomg'ir", aSnow: 'Qor', aHot: 'Jazirama', aCold: 'Sovuq', aWind: 'Kuchli shamol', aAir: 'Havo sifati',
     save: 'Saqlash', loading: 'Yuklanmoqda…', source: "Ma'lumot manbai:",
+    openForm: "Formani to'ldirish", close: 'Yopish', dlgDesc: "Ma'lumotlaringiz \"Saqlash\" tugmasi bosilishi bilan bazaga yoziladi.",
     now: 'Hozir', today: 'Bugun', humidity: 'Namlik', wind: 'Shamol', uv: 'UV indeksi', pressure: 'Bosim',
     visibility: "Ko'rinish", sun: 'Quyosh', aqi: 'Havo sifati', precip: "Yog'ingarchilik",
     sunrise: 'Chiqishi', sunset: 'Botishi', gusts: 'Shamol zarbi', dew: 'Shudring nuqtasi',
@@ -62,6 +63,7 @@ const I18N = {
     fName: 'Ваше имя', fPhone: 'Телефон', fCity: 'Город', fAlerts: 'Какие оповещения нужны?', fNote: 'Комментарий (необязательно)',
     aRain: 'Дождь', aSnow: 'Снег', aHot: 'Жара', aCold: 'Холод', aWind: 'Сильный ветер', aAir: 'Качество воздуха',
     save: 'Сохранить', loading: 'Загрузка…', source: 'Источник данных:',
+    openForm: 'Заполнить форму', close: 'Закрыть', dlgDesc: 'Данные сохраняются в базу сразу после нажатия «Сохранить».',
     now: 'Сейчас', today: 'Сегодня', humidity: 'Влажность', wind: 'Ветер', uv: 'УФ-индекс', pressure: 'Давление',
     visibility: 'Видимость', sun: 'Солнце', aqi: 'Качество воздуха', precip: 'Осадки',
     sunrise: 'Восход', sunset: 'Закат', gusts: 'Порывы', dew: 'Точка росы',
@@ -91,6 +93,7 @@ const I18N = {
     fName: 'Your name', fPhone: 'Phone number', fCity: 'City', fAlerts: 'Which alerts do you want?', fNote: 'Note (optional)',
     aRain: 'Rain', aSnow: 'Snow', aHot: 'Heat', aCold: 'Cold', aWind: 'Strong wind', aAir: 'Air quality',
     save: 'Save', loading: 'Loading…', source: 'Data source:',
+    openForm: 'Fill in the form', close: 'Close', dlgDesc: 'Your data is saved to the database as soon as you press Save.',
     now: 'Now', today: 'Today', humidity: 'Humidity', wind: 'Wind', uv: 'UV index', pressure: 'Pressure',
     visibility: 'Visibility', sun: 'Sun', aqi: 'Air quality', precip: 'Precipitation',
     sunrise: 'Sunrise', sunset: 'Sunset', gusts: 'Gusts', dew: 'Dew point',
@@ -702,6 +705,7 @@ function applyLang() {
   document.documentElement.lang = state.lang;
   $$('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   $$('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+  $$('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
   $$('.lang-btn').forEach((b) => { const on = b.dataset.lang === state.lang; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
   setButtonLoading(saveBtn.disabled);
   updateSubCount();
@@ -716,6 +720,36 @@ const form = $('#sub-form');
 const saveBtn = $('#save-btn');
 const formMsg = $('#form-msg');
 $('#f-shahar').innerHTML = CITIES.map((c) => `<option value="${esc(c.id)}">${esc(c.id)}</option>`).join('');
+
+/* ---- Modal oyna ---- */
+const dialog = $('#form-dialog');
+const openBtn = $('#open-form');
+let closeTimer = null;
+
+function openForm() {
+  clearTimeout(closeTimer);
+  if (!saveBtn.disabled) showFormMsg('', '');
+  $('#f-shahar').value = state.city.id;
+  dialog.classList.remove('closing');
+  dialog.showModal();
+  setTimeout(() => $('#f-ism').focus(), 50);
+}
+
+function closeForm() {
+  if (!dialog.open || saveBtn.disabled) return; // saqlanayotganda yopilmaydi
+  clearTimeout(closeTimer);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { dialog.close(); return; }
+  dialog.classList.add('closing');
+  dialog.addEventListener('animationend', () => { dialog.classList.remove('closing'); dialog.close(); }, { once: true });
+}
+
+openBtn.addEventListener('click', openForm);
+$('#close-form').addEventListener('click', closeForm);
+// Esc: animatsiya bilan yopish, saqlash paytida bloklash
+dialog.addEventListener('cancel', (e) => { e.preventDefault(); closeForm(); });
+// Fon (backdrop) ustiga bosilganda yopish
+dialog.addEventListener('mousedown', (e) => { if (e.target === dialog) closeForm(); });
+dialog.addEventListener('close', () => openBtn.focus());
 
 const FIELD_INPUT = { ism: '#f-ism', telefon: '#f-tel', shahar: '#f-shahar', izoh: '#f-izoh' };
 
@@ -790,6 +824,8 @@ form.addEventListener('submit', async (e) => {
       form.reset();
       $('#f-shahar').value = state.city.id;
       updateSubCount();
+      // Xabar ko'rinib turishi uchun 2.5 soniyadan keyin oynani yopamiz
+      closeTimer = setTimeout(closeForm, 2500);
     } else if (res.status === 422 && json.errors) {
       // Server tomonidagi tekshiruv xatolari
       const map = { ism: 'errName', telefon: 'errPhone', shahar: 'errCity', izoh: 'errNote' };

@@ -5,12 +5,14 @@
   "type": "module",
   "description": "O'zbekiston ob-havo ilovasi + Neon bazasiga obuna formasi",
   "scripts": {
+    "build": "node --check server.js && node --check public/app.js && node --check public/dashboard.js &&node --check scripts/migrate.mjs && echo \"build OK\"",
+    "migrate": "node --env-file=.env scripts/migrate.mjs",
     "start": "node --env-file=.env server.js",
     "dev": "node --watch --env-file=.env server.js"
   },
   "dependencies": {
     "@neon/config": "^1.14.6",
     "@neon/env": "^2.1.9",
-    "@neondatabase/serverless": "^1.0.0"
+    "pg": "^8.23.1"
   }
 }
