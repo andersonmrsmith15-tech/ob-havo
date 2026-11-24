@@ -1,0 +1,14 @@
+{
+  "name": "ob-havo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "O'zbekiston ob-havo ilovasi + Neon bazasiga obuna formasi",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "dev": "node --watch --env-file=.env server.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  }
+}

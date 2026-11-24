@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ob-havo — O'zbekiston</title>
+  <meta name="description" content="O'zbekiston shaharlari uchun joriy ob-havo, soatlik va 7 kunlik prognoz." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='26' cy='26' r='12' fill='%23FDB813'/><path d='M20 48h26a10 10 0 0 0 0-20 14 14 0 0 0-26 4 8 8 0 0 0 0 16z' fill='white'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="theme-cloudy">
+  <a class="skip-link" href="#main" data-i18n="skip">Asosiy kontentga o'tish</a>
+
+  <!-- Dinamik fon qatlamlari -->
+  <div class="bg" aria-hidden="true">
+    <div class="bg-layer bg-sunny"></div>
+    <div class="bg-layer bg-cloudy"></div>
+    <div class="bg-layer bg-rain"></div>
+    <div class="bg-layer bg-snow"></div>
+    <div class="bg-layer bg-night"></div>
+    <div class="particles" id="particles"></div>
+  </div>
+
+  <header class="header glass">
+    <a href="/" class="logo" aria-label="Ob-havo bosh sahifa">
+      <svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true">
+        <circle cx="16" cy="16" r="8" fill="#FDB813"/>
+        <path d="M13 32h17a7 7 0 0 0 0-14 9 9 0 0 0-17 3 5.5 5.5 0 0 0 0 11z" fill="#fff"/>
+      </svg>
+      <span>Ob-havo<small>.uz</small></span>
+    </a>
+
+    <div class="search" role="search">
+      <label for="city-input" class="sr-only" data-i18n="searchLabel">Shahar qidirish</label>
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="city-input" type="text" autocomplete="off" spellcheck="false"
+             role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-list"
+             data-i18n-ph="searchPh" placeholder="Shahar qidirish…" />
+      <ul id="city-list" class="suggestions glass" role="listbox" hidden></ul>
+    </div>
+
+    <div class="header-actions">
+      <div class="unit-toggle" role="group" aria-label="Harorat birligi">
+        <button type="button" class="unit-btn active" data-unit="C" aria-pressed="true">°C</button>
+        <button type="button" class="unit-btn" data-unit="F" aria-pressed="false">°F</button>
+      </div>
+      <button type="button" class="icon-btn" id="mode-btn" aria-label="Tungi rejimga o'tish" title="Tungi/kunduzgi rejim">
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" role="status" hidden></div>
+
+  <main id="main" class="layout" aria-busy="true">
+    <!-- HERO -->
+    <section class="hero glass card-static" aria-labelledby="city-name">
+      <div class="hero-top">
+        <div>
+          <h1 id="city-name" class="city-name"><span class="skeleton sk-text" style="width:160px"></span></h1>
+          <p class="datetime" id="datetime"><span class="skeleton sk-text" style="width:220px"></span></p>
+        </div>
+        <div class="hero-icon" id="hero-icon"><span class="skeleton sk-circle"></span></div>
+      </div>
+      <div class="hero-temp">
+        <span class="temp-big" id="temp-now" aria-live="polite"><span class="skeleton sk-big"></span></span>
+      </div>
+      <p class="condition" id="condition"><span class="skeleton sk-text" style="width:140px"></span></p>
+      <div class="hero-meta">
+        <div><span data-i18n="feelsLike">His qilinadi</span><strong id="feels">—</strong></div>
+        <div><span data-i18n="high">Eng yuqori</span><strong id="tmax">—</strong></div>
+        <div><span data-i18n="low">Eng past</span><strong id="tmin">—</strong></div>
+      </div>
+    </section>
+
+    <!-- SOATLIK -->
+    <section class="hourly glass card-static" aria-labelledby="h-hourly">
+      <div class="section-head">
+        <h2 id="h-hourly" data-i18n="hourly">Soatlik prognoz</h2>
+        <span class="hint" data-i18n="next24">Keyingi 24 soat</span>
+      </div>
+      <div class="hourly-strip" id="hourly" tabindex="0" role="list" aria-label="Soatlik prognoz lentasi">
+        <div class="skeleton sk-hour"></div><div class="skeleton sk-hour"></div><div class="skeleton sk-hour"></div>
+        <div class="skeleton sk-hour"></div><div class="skeleton sk-hour"></div><div class="skeleton sk-hour"></div>
+      </div>
+    </section>
+
+    <!-- 7 KUNLIK -->
+    <section class="daily glass card-static" aria-labelledby="h-daily">
+      <div class="section-head">
+        <h2 id="h-daily" data-i18n="daily">7 kunlik prognoz</h2>
+      </div>
+      <ul class="daily-list" id="daily">
+        <li class="skeleton sk-row"></li><li class="skeleton sk-row"></li><li class="skeleton sk-row"></li>
+        <li class="skeleton sk-row"></li><li class="skeleton sk-row"></li>
+      </ul>
+    </section>
+
+    <!-- BATAFSIL -->
+    <section class="details" aria-labelledby="h-details">
+      <h2 id="h-details" class="sr-only" data-i18n="details">Batafsil ko'rsatkichlar</h2>
+      <div class="detail-grid" id="details">
+        <div class="glass card skeleton sk-card"></div><div class="glass card skeleton sk-card"></div>
+        <div class="glass card skeleton sk-card"></div><div class="glass card skeleton sk-card"></div>
+        <div class="glass card skeleton sk-card"></div><div class="glass card skeleton sk-card"></div>
+        <div class="glass card skeleton sk-card"></div><div class="glass card skeleton sk-card"></div>
+      </div>
+    </section>
+
+    <!-- XARITA -->
+    <section class="map-section glass card-static" aria-labelledby="h-map">
+      <div class="section-head">
+        <h2 id="h-map" data-i18n="map">O'zbekiston xaritasi</h2>
+        <div class="seg" role="tablist" aria-label="Xarita qatlami">
+          <button type="button" role="tab" class="seg-btn active" data-layer="temp" aria-selected="true" data-i18n="layerTemp">Harorat</button>
+          <button type="button" role="tab" class="seg-btn" data-layer="precip" aria-selected="false" data-i18n="layerPrecip">Yog'in</button>
+          <button type="button" role="tab" class="seg-btn" data-layer="wind" aria-selected="false" data-i18n="layerWind">Shamol</button>
+        </div>
+      </div>
+      <div id="map" class="map" role="application" aria-label="Shaharlar ob-havosi xaritasi"></div>
+      <p class="hint map-hint" data-i18n="mapHint">Shahar belgisini bosing — ob-havo shu shaharga almashadi.</p>
+    </section>
+
+    <!-- OBUNA FORMASI -->
+    <section class="subscribe glass card-static" aria-labelledby="h-sub">
+      <div class="section-head">
+        <h2 id="h-sub" data-i18n="subTitle">Ob-havo ogohlantirishlariga obuna</h2>
+        <span class="hint" id="sub-count"></span>
+      </div>
+      <p class="sub-desc" data-i18n="subDesc">Shahringizda yomg'ir, qor yoki keskin o'zgarishlar bo'lsa, sizga xabar beramiz.</p>
+
+      <form id="sub-form" novalidate>
+        <div class="field">
+          <label for="f-ism" data-i18n="fName">Ismingiz</label>
+          <input id="f-ism" name="ism" type="text" required minlength="2" maxlength="80" autocomplete="name" placeholder="Masalan: Aziza" />
+          <small class="err" id="e-ism"></small>
+        </div>
+        <div class="field">
+          <label for="f-tel" data-i18n="fPhone">Telefon raqami</label>
+          <input id="f-tel" name="telefon" type="tel" required inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" />
+          <small class="err" id="e-telefon"></small>
+        </div>
+        <div class="field">
+          <label for="f-shahar" data-i18n="fCity">Shahar</label>
+          <select id="f-shahar" name="shahar" required></select>
+          <small class="err" id="e-shahar"></small>
+        </div>
+        <fieldset class="field">
+          <legend data-i18n="fAlerts">Qaysi ogohlantirishlar kerak?</legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="yomgir" checked /><span data-i18n="aRain">Yomg'ir</span></label>
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="qor" /><span data-i18n="aSnow">Qor</span></label>
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="issiq" /><span data-i18n="aHot">Jazirama</span></label>
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="sovuq" /><span data-i18n="aCold">Sovuq</span></label>
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="shamol" /><span data-i18n="aWind">Kuchli shamol</span></label>
+            <label class="chip"><input type="checkbox" name="ogohlantirish" value="havo_sifati" /><span data-i18n="aAir">Havo sifati</span></label>
+          </div>
+        </fieldset>
+        <div class="field field-full">
+          <label for="f-izoh" data-i18n="fNote">Izoh (ixtiyoriy)</label>
+          <textarea id="f-izoh" name="izoh" rows="2" maxlength="500"></textarea>
+          <small class="err" id="e-izoh"></small>
+        </div>
+        <div class="form-foot field-full">
+          <button type="submit" class="btn-primary" id="save-btn">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-label" data-i18n="save">Saqlash</span>
+          </button>
+          <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><span data-i18n="source">Ma'lumot manbai:</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <span id="updated"></span></p>
+    <div class="lang" role="group" aria-label="Til tanlash">
+      <button type="button" class="lang-btn active" data-lang="uz" aria-pressed="true">O'zbek</button>
+      <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">Русский</button>
+      <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">English</button>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/app.js"></script>
+</body>
+</html>
