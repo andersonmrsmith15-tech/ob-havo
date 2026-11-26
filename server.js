@@ -201,6 +201,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/obuna' && req.method === 'POST') return handleObuna(req, res);
   if (pathname === '/api/obuna/soni' && req.method === 'GET') return handleCount(res);
   if (pathname === '/api/dashboard' && req.method === 'GET') return handleDashboardData(req, res);
+  if ((pathname === '/open-meteo' || pathname === '/open-meteo/') && req.method === 'GET') {
+    req.url = '/open-meteo.html';
+    return serveStatic(req, res);
+  }
   if ((pathname === '/dashboard' || pathname === '/dashboard/') && req.method === 'GET') return handleDashboardPage(req, res);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   res.writeHead(405);

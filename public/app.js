@@ -33,6 +33,7 @@ const I18N = {
     fName: 'Ismingiz', fPhone: 'Telefon raqami', fCity: 'Shahar', fAlerts: 'Qaysi ogohlantirishlar kerak?', fNote: 'Izoh (ixtiyoriy)',
     aRain: "Yomg'ir", aSnow: 'Qor', aHot: 'Jazirama', aCold: 'Sovuq', aWind: 'Kuchli shamol', aAir: 'Havo sifati',
     save: 'Saqlash', loading: 'Yuklanmoqda…', source: "Ma'lumot manbai:",
+    gmTitle: 'Joriy ob-havoni alohida oynada ochish (Open-Meteo)',
     openForm: "Formani to'ldirish", close: 'Yopish', dlgDesc: "Ma'lumotlaringiz \"Saqlash\" tugmasi bosilishi bilan bazaga yoziladi.",
     now: 'Hozir', today: 'Bugun', humidity: 'Namlik', wind: 'Shamol', uv: 'UV indeksi', pressure: 'Bosim',
     visibility: "Ko'rinish", sun: 'Quyosh', aqi: 'Havo sifati', precip: "Yog'ingarchilik",
@@ -63,6 +64,7 @@ const I18N = {
     fName: 'Ваше имя', fPhone: 'Телефон', fCity: 'Город', fAlerts: 'Какие оповещения нужны?', fNote: 'Комментарий (необязательно)',
     aRain: 'Дождь', aSnow: 'Снег', aHot: 'Жара', aCold: 'Холод', aWind: 'Сильный ветер', aAir: 'Качество воздуха',
     save: 'Сохранить', loading: 'Загрузка…', source: 'Источник данных:',
+    gmTitle: 'Текущая погода в отдельном окне (Open-Meteo)',
     openForm: 'Заполнить форму', close: 'Закрыть', dlgDesc: 'Данные сохраняются в базу сразу после нажатия «Сохранить».',
     now: 'Сейчас', today: 'Сегодня', humidity: 'Влажность', wind: 'Ветер', uv: 'УФ-индекс', pressure: 'Давление',
     visibility: 'Видимость', sun: 'Солнце', aqi: 'Качество воздуха', precip: 'Осадки',
@@ -93,6 +95,7 @@ const I18N = {
     fName: 'Your name', fPhone: 'Phone number', fCity: 'City', fAlerts: 'Which alerts do you want?', fNote: 'Note (optional)',
     aRain: 'Rain', aSnow: 'Snow', aHot: 'Heat', aCold: 'Cold', aWind: 'Strong wind', aAir: 'Air quality',
     save: 'Save', loading: 'Loading…', source: 'Data source:',
+    gmTitle: 'Current weather in a separate window (Open-Meteo)',
     openForm: 'Fill in the form', close: 'Close', dlgDesc: 'Your data is saved to the database as soon as you press Save.',
     now: 'Now', today: 'Today', humidity: 'Humidity', wind: 'Wind', uv: 'UV index', pressure: 'Pressure',
     visibility: 'Visibility', sun: 'Sun', aqi: 'Air quality', precip: 'Precipitation',
@@ -694,6 +697,17 @@ function setUnit(u) {
 }
 $$('.unit-btn').forEach((b) => b.addEventListener('click', () => setUnit(b.dataset.unit)));
 
+// Open-Meteo sahifasini alohida (popup) oynada ochish; popup bloklansa — oddiy yangi tab (href orqali)
+let gmWin = null;
+$('#gm-btn').addEventListener('click', (e) => {
+  const url = `/open-meteo?shahar=${encodeURIComponent(state.city.id)}`;
+  const w = Math.min(1100, screen.availWidth - 40), h = Math.min(860, screen.availHeight - 60);
+  const left = Math.max(0, (screen.availWidth - w) / 2), top = Math.max(0, (screen.availHeight - h) / 2);
+  if (gmWin && !gmWin.closed) { gmWin.location.href = url; gmWin.focus(); e.preventDefault(); return; }
+  gmWin = window.open(url, 'open-meteo',`popup=yes,width=${w},height=${h},left=${left},top=${top}`);
+  if (gmWin) e.preventDefault();
+});
+
 $('#mode-btn').addEventListener('click', () => {
   const nightNow = document.body.classList.contains('is-night');
   state.modeOverride = nightNow ? 'day' : 'night';
@@ -706,6 +720,7 @@ function applyLang() {
   $$('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   $$('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   $$('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  $$('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
   $$('.lang-btn').forEach((b) => { const on = b.dataset.lang === state.lang; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
   setButtonLoading(saveBtn.disabled);
   updateSubCount();
